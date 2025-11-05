@@ -24,7 +24,7 @@ SCI_MODEL_API_KEY=your_api_key
 Build and start the service using Docker Compose:
 
 ```bash
-docker-compose up --build
+docker-compose up -d --build
 ```
 
 The service will be available at `http://localhost:3000`.
@@ -37,6 +37,22 @@ Send a POST request to the `/example` endpoint:
 curl -X POST http://localhost:3000/example \
   -H "Content-Type: application/json" \
   -d '{"query":"Hello"}'
+```
+
+Example output:
+
+```
+data: {"object": "chat.completion.chunk", "choices": [{"delta": {"content": "Hello"}}]}
+
+data: {"object": "chat.completion.chunk", "choices": [{"delta": {"content": "!"}}]}
+
+data: {"object": "chat.completion.chunk", "choices": [{"delta": {"content": " How are"}}]}
+
+data: {"object": "chat.completion.chunk", "choices": [{"delta": {"content": " you today"}}]}
+
+data: {"object": "chat.completion.chunk", "choices": [{"delta": {"content": "?"}}]}
+
+data: [DONE]
 ```
 
 The service returns streaming responses in Server-Sent Events format.

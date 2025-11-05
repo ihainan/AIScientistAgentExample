@@ -24,6 +24,10 @@ async def example(request: Request):
     body = await request.json()
     query = body.get("query", "")
 
+    print(f"Received query: {query}")
+    print(f"Using model: {os.getenv('SCI_LLM_MODEL')}")
+    print(f"Base URL: {os.getenv('SCI_MODEL_BASE_URL')}")
+
     async def generate():
         try:
             # Call LLM model with streaming
@@ -35,22 +39,28 @@ async def example(request: Request):
 
             # Process LLM response and stream back
             # Here we directly return without processing
+            chunk_count = 0
             for chunk in stream:
-                if chunk.choices[0].delta.content:
-                    response_data = {
-                        "object": "chat.completion.chunk",
-                        "choices": [{
-                            "delta": {
-                                "content": chunk.choices[0].delta.content
-                            }
-                        }]
-                    }
-                    yield f"data: {json.dumps(response_data)}\n\n"
+                chunk_count += 1
+                if chunk.choices and len(chunk.choices) > 0:
+                    delta_content = chunk.choices[0].delta.content
+                    if delta_content:
+                        response_data = {
+                            "object": "chat.completion.chunk",
+                            "choices": [{
+                                "delta": {
+                                    "content": delta_content
+                                }
+                            }]
+                        }
+                        yield f"data: {json.dumps(response_data)}\n\n"
 
+            print(f"Total chunks received: {chunk_count}")
             # Send completion signal
             yield "data: [DONE]\n\n"
 
         except Exception as e:
+            print(f"Error in streaming: {str(e)}")
             error_data = {
                 "object": "error",
                 "message": str(e)
