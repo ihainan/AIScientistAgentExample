@@ -2,7 +2,7 @@ import os
 import json
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
-from openai import OpenAI
+from openai import AsyncOpenAI
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -11,7 +11,7 @@ load_dotenv()
 app = FastAPI()
 
 # Initialize OpenAI client with custom base URL
-client = OpenAI(
+client = AsyncOpenAI(
     base_url=os.getenv("SCI_MODEL_BASE_URL"),
     api_key=os.getenv("SCI_MODEL_API_KEY")
 )
@@ -33,7 +33,7 @@ async def chat_completions(request: Request):
         async def generate():
             try:
                 # Call LLM model with streaming
-                llm_stream = client.chat.completions.create(
+                llm_stream = await client.chat.completions.create(
                     model=os.getenv("SCI_LLM_MODEL"),
                     messages=messages,
                     stream=True
@@ -41,7 +41,7 @@ async def chat_completions(request: Request):
 
                 # Stream response in OpenAI format
                 chunk_count = 0
-                for chunk in llm_stream:
+                async for chunk in llm_stream:
                     chunk_count += 1
                     if chunk.choices and len(chunk.choices) > 0:
                         delta_content = chunk.choices[0].delta.content
@@ -93,7 +93,7 @@ async def chat_completions(request: Request):
     else:
         # Non-streaming response
         try:
-            response = client.chat.completions.create(
+            response = await client.chat.completions.create(
                 model=os.getenv("SCI_LLM_MODEL"),
                 messages=messages,
                 stream=False
@@ -123,7 +123,7 @@ async def example(request: Request):
     async def generate():
         try:
             # Call LLM model with streaming
-            stream = client.chat.completions.create(
+            stream = await client.chat.completions.create(
                 model=os.getenv("SCI_LLM_MODEL"),
                 messages=[{"role": "user", "content": query}],
                 stream=True
@@ -132,7 +132,7 @@ async def example(request: Request):
             # Process LLM response and stream back
             # Here we directly return without processing
             chunk_count = 0
-            for chunk in stream:
+            async for chunk in stream:
                 chunk_count += 1
                 if chunk.choices and len(chunk.choices) > 0:
                     delta_content = chunk.choices[0].delta.content
@@ -169,4 +169,10 @@ async def health():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=3000)
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=3000,
+        access_log=True,
+        log_level="info"
+    )
